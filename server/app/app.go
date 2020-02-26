@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"github.com/deissh/osu-lazer/server/einterfaces"
 	"github.com/deissh/osu-lazer/server/mlog"
 )
 
@@ -17,8 +16,6 @@ type App struct {
 	path           string
 	userAgent      string
 	acceptLanguage string
-
-	metrics einterfaces.MetricsInterface
 
 	context context.Context
 }

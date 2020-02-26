@@ -13,4 +13,5 @@ type SqlStore interface {
 	TotalMasterDbConnections() int
 
 	User() store.UserStore
+	Friend() store.FriendStore
 }

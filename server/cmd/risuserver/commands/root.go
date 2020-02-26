@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"github.com/mattermost/viper"
 	"github.com/spf13/cobra"
 )
 
@@ -30,12 +29,5 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.PersistentFlags().StringP("config", "c", "config.json", "Configuration file to use.")
-	RootCmd.PersistentFlags().Bool("disableconfigwatch", false, "When set config.json will not be loaded from disk when the file is changed.")
-	RootCmd.PersistentFlags().Bool("platform", false, "This flag signifies that the user tried to start the command from the platform binary, so we can log a mssage")
-	RootCmd.PersistentFlags().MarkHidden("platform")
-
-	viper.SetEnvPrefix("mm")
-	viper.BindEnv("config")
-	viper.BindPFlag("config", RootCmd.PersistentFlags().Lookup("config"))
+	RootCmd.PersistentFlags().StringP("config", "c", "config.yaml", "Configuration file to use.")
 }

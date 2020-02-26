@@ -25,7 +25,8 @@ const (
 )
 
 type SqlSupplierStores struct {
-	user store.UserStore
+	user   store.UserStore
+	friend store.FriendStore
 }
 
 type SqlSupplier struct {
@@ -146,10 +147,6 @@ func (ss *SqlSupplier) UnlockFromMaster() {
 	ss.lockedToMaster = false
 }
 
-func (ss *SqlSupplier) User() store.UserStore {
-	return ss.stores.user
-}
-
 type JSONSerializable interface {
 	ToJson() string
 }
@@ -165,4 +162,12 @@ func convertMySQLFullTextColumnsToPostgres(columnNames string) string {
 	}
 
 	return concatenatedColumnNames
+}
+
+func (ss *SqlSupplier) User() store.UserStore {
+	return ss.stores.user
+}
+
+func (ss *SqlSupplier) Friend() store.FriendStore {
+	return ss.stores.friend
 }

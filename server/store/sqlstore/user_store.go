@@ -1,28 +1,53 @@
 package sqlstore
 
 import (
-	"fmt"
 	"github.com/deissh/osu-lazer/server/model"
 	"github.com/deissh/osu-lazer/server/store"
+	"github.com/deissh/osu-lazer/server/utils"
 )
+
+var modes = []string{"std", "mania", "catch", "taiko"}
 
 type SqlUserStore struct {
 	SqlStore
 }
 
 func NewSqlUserStore(sqlStore SqlStore) store.UserStore {
-	us := &SqlUserStore{
-		SqlStore: sqlStore,
+	return &SqlUserStore{sqlStore}
+}
+
+func (s SqlUserStore) Get(id uint, mode string) (*model.UserFull, error) {
+	var user model.UserFull
+
+	if !utils.ContainsString(modes, mode) {
+		mode = "std"
 	}
+	user.Mode = mode
 
-	return us
+	err := s.GetMaster().Get(
+		&user,
+		`SELECT u.*, check_online(last_visit),
+				json_build_object('code', c.code, 'name', c.name) as country
+			FROM users u
+			INNER JOIN countries c ON c.code = u.country_code
+			WHERE u.id = $1`,
+	)
+
+	return &user, err
 }
 
-func (us SqlUserStore) Get(id string) (*model.User, *error) {
-	return &model.User{}, nil
+func (s SqlUserStore) GetByLoginAndPass(username string, password string) (*model.UserFull, error) {
+	panic("implement me")
 }
 
-func (us SqlUserStore) GetAll() ([]*model.User, *error) {
-	fmt.Print("here")
-	return nil, nil
+func (s SqlUserStore) Create(username string, email string, password string) (*model.UserFull, error) {
+	panic("implement me")
+}
+
+func (s SqlUserStore) UpdateLastVisit(userId uint) (*model.User, error) {
+	panic("implement me")
+}
+
+func (s SqlUserStore) GetAll() ([]*model.User, error) {
+	panic("implement me")
 }

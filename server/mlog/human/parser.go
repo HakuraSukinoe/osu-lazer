@@ -7,12 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/deissh/osu-lazer/server/mlog"
 	"io"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/mattermost/mattermost-server/v5/mlog"
 )
 
 func ParseLogMessage(msg string) LogEntry {

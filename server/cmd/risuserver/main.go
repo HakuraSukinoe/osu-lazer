@@ -10,13 +10,3 @@ func main() {
 		os.Exit(1)
 	}
 }
-
-//config := model.SqlSettings{}
-//config.SetDefaults(true)
-//
-//testStore = store.NewTimerLayer(
-//sqlstore.NewSqlSupplier(config, nil),
-//nil,
-//)
-//
-//testStore.User().GetAll()

@@ -4,6 +4,7 @@
 package mlog_test
 
 import (
+	"github.com/deissh/osu-lazer/server/mlog"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,8 +13,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/mattermost/mattermost-server/v5/mlog"
 )
 
 func TestLoggingBeforeInitialized(t *testing.T) {

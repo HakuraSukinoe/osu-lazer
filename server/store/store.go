@@ -6,6 +6,8 @@ import "github.com/deissh/osu-lazer/server/model"
 
 type Store interface {
 	User() UserStore
+
+	Close()
 }
 
 type UserStore interface {

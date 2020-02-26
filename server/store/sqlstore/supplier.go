@@ -2,7 +2,6 @@ package sqlstore
 
 import (
 	"context"
-	"github.com/deissh/osu-lazer/server/einterfaces"
 	"github.com/deissh/osu-lazer/server/mlog"
 	"github.com/deissh/osu-lazer/server/model"
 	"github.com/deissh/osu-lazer/server/store"
@@ -20,36 +19,9 @@ const (
 )
 
 const (
-	EXIT_GENERIC_FAILURE             = 1
-	EXIT_CREATE_TABLE                = 100
-	EXIT_DB_OPEN                     = 101
-	EXIT_PING                        = 102
-	EXIT_NO_DRIVER                   = 103
-	EXIT_TABLE_EXISTS                = 104
-	EXIT_TABLE_EXISTS_MYSQL          = 105
-	EXIT_COLUMN_EXISTS               = 106
-	EXIT_DOES_COLUMN_EXISTS_POSTGRES = 107
-	EXIT_DOES_COLUMN_EXISTS_MYSQL    = 108
-	EXIT_DOES_COLUMN_EXISTS_MISSING  = 109
-	EXIT_CREATE_COLUMN_POSTGRES      = 110
-	EXIT_CREATE_COLUMN_MYSQL         = 111
-	EXIT_CREATE_COLUMN_MISSING       = 112
-	EXIT_REMOVE_COLUMN               = 113
-	EXIT_RENAME_COLUMN               = 114
-	EXIT_MAX_COLUMN                  = 115
-	EXIT_ALTER_COLUMN                = 116
-	EXIT_CREATE_INDEX_POSTGRES       = 117
-	EXIT_CREATE_INDEX_MYSQL          = 118
-	EXIT_CREATE_INDEX_FULL_MYSQL     = 119
-	EXIT_CREATE_INDEX_MISSING        = 120
-	EXIT_REMOVE_INDEX_POSTGRES       = 121
-	EXIT_REMOVE_INDEX_MYSQL          = 122
-	EXIT_REMOVE_INDEX_MISSING        = 123
-	EXIT_REMOVE_TABLE                = 134
-	EXIT_CREATE_INDEX_SQLITE         = 135
-	EXIT_REMOVE_INDEX_SQLITE         = 136
-	EXIT_TABLE_EXISTS_SQLITE         = 137
-	EXIT_DOES_COLUMN_EXISTS_SQLITE   = 138
+	EXIT_GENERIC_FAILURE = 1
+	EXIT_DB_OPEN         = 101
+	EXIT_PING            = 102
 )
 
 type SqlSupplierStores struct {
@@ -57,8 +29,6 @@ type SqlSupplierStores struct {
 }
 
 type SqlSupplier struct {
-	// rrCounter and srCounter should be kept first.
-	// See https://github.com/mattermost/mattermost-server/v5/pull/7281
 	rrCounter      int64
 	srCounter      int64
 	master         *sqlx.DB
@@ -67,15 +37,25 @@ type SqlSupplier struct {
 	lockedToMaster bool
 }
 
-func NewSqlSupplier(settings model.SqlSettings, metrics einterfaces.MetricsInterface) *SqlSupplier {
+func NewSqlSupplier() *SqlSupplier {
 	supplier := &SqlSupplier{
 		rrCounter: 0,
 		srCounter: 0,
-		settings:  &settings,
+		settings: &model.SqlSettings{
+			DriverName:                  nil,
+			DataSource:                  nil,
+			DatabaseName:                nil,
+			MaxIdleConns:                nil,
+			ConnMaxLifetimeMilliseconds: nil,
+			MaxOpenConns:                nil,
+			Trace:                       nil,
+			AtRestEncryptKey:            nil,
+			QueryTimeout:                nil,
+		},
 	}
 	supplier.initConnection()
 
-	supplier.stores.user = NewSqlUserStore(supplier, metrics)
+	supplier.stores.user = NewSqlUserStore(supplier)
 
 	return supplier
 }

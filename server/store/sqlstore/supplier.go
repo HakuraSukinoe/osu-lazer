@@ -4,12 +4,10 @@ import (
 	"context"
 	"github.com/deissh/osu-lazer/server/model"
 	"github.com/deissh/osu-lazer/server/store"
-	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -27,6 +25,7 @@ const (
 type SqlSupplierStores struct {
 	user   store.UserStore
 	friend store.FriendStore
+	oauth  store.OAuthStore
 }
 
 type SqlSupplier struct {
@@ -47,6 +46,7 @@ func NewSqlSupplier(settings *model.SqlSettings) *SqlSupplier {
 	supplier.initConnection()
 
 	supplier.stores.user = NewSqlUserStore(supplier)
+	supplier.stores.oauth = NewSqlOAuthStore(supplier)
 
 	return supplier
 }
@@ -111,27 +111,6 @@ func (ss *SqlSupplier) TotalMasterDbConnections() int {
 	return ss.GetMaster().Stats().OpenConnections
 }
 
-func IsUniqueConstraintError(err error, indexName []string) bool {
-	unique := false
-	if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
-		unique = true
-	}
-
-	if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
-		unique = true
-	}
-
-	field := false
-	for _, contain := range indexName {
-		if strings.Contains(err.Error(), contain) {
-			field = true
-			break
-		}
-	}
-
-	return unique && field
-}
-
 func (ss *SqlSupplier) Close() {
 	_ = ss.master.Close()
 }
@@ -148,23 +127,14 @@ type JSONSerializable interface {
 	ToJson() string
 }
 
-func convertMySQLFullTextColumnsToPostgres(columnNames string) string {
-	columns := strings.Split(columnNames, ", ")
-	concatenatedColumnNames := ""
-	for i, c := range columns {
-		concatenatedColumnNames += c
-		if i < len(columns)-1 {
-			concatenatedColumnNames += " || ' ' || "
-		}
-	}
-
-	return concatenatedColumnNames
-}
-
 func (ss *SqlSupplier) User() store.UserStore {
 	return ss.stores.user
 }
 
 func (ss *SqlSupplier) Friend() store.FriendStore {
 	return ss.stores.friend
+}
+
+func (ss *SqlSupplier) OAuth() store.OAuthStore {
+	return ss.stores.oauth
 }

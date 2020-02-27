@@ -4,12 +4,16 @@ import (
 	"context"
 	"fmt"
 	"github.com/deissh/osu-lazer/server/api"
+	"github.com/deissh/osu-lazer/server/middlewares/customerror"
+	"github.com/deissh/osu-lazer/server/middlewares/customlogger"
+	"github.com/deissh/osu-lazer/server/middlewares/permission"
 	"github.com/deissh/osu-lazer/server/model"
 	"github.com/deissh/osu-lazer/server/store"
 	"github.com/deissh/osu-lazer/server/store/sqlstore"
 	"github.com/gookit/config/v2"
 	"github.com/gookit/config/v2/yaml"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -68,19 +72,30 @@ func NewServer(options ...Option) (*Server, error) {
 		Str("build_hash_enterprise", model.BuildHashEnterprise).
 		Msg(logCurrentVersion)
 
+	pwd, _ := os.Getwd()
+	log.Info().Msg("Printing current working " + pwd)
+	log.Info().Str("path", s.configPath).Msg("Loaded config")
+
+	// init store
+	settings := model.NewSqlSettings()
+	s.Store = sqlstore.NewSqlSupplier(settings)
+
+	// create new echo server and setup middlewares
 	s.HttpServer = echo.New()
 	s.HttpServer.HideBanner = true
 	s.HttpServer.HidePort = true
+	s.HttpServer.HTTPErrorHandler = customerror.CustomHTTPErrorHandler
 
-	settings := model.NewSqlSettings()
-	s.Store = sqlstore.NewSqlSupplier(settings)
+	s.HttpServer.Use(middleware.RequestID())
+	s.HttpServer.Use(customlogger.Middleware())
+	s.HttpServer.Use(permission.GlobalMiddleware(s.Store))
+
+	api.Init(s.Store, s.HttpServer.Group(""))
 
 	return s, nil
 }
 
 func (s *Server) Start() error {
-	api.Init(s.Store, s.HttpServer.Group(""))
-
 	addr := config.String("server.host") + ":" + config.String("server.port")
 
 	go func() {

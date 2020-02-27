@@ -31,6 +31,7 @@ func (s SqlUserStore) Get(id uint, mode string) (*model.UserFull, error) {
 			FROM users u
 			INNER JOIN countries c ON c.code = u.country_code
 			WHERE u.id = $1`,
+		id,
 	)
 
 	return &user, err
@@ -44,7 +45,7 @@ func (s SqlUserStore) Create(username string, email string, password string) (*m
 	panic("implement me")
 }
 
-func (s SqlUserStore) UpdateLastVisit(userId uint) (*model.User, error) {
+func (s SqlUserStore) UpdateLastVisit(userId uint) (*model.UserFull, error) {
 	panic("implement me")
 }
 

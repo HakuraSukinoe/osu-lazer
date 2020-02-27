@@ -38,6 +38,3 @@ func SetConfig(path string) Option {
 		return nil
 	}
 }
-
-type AppOption func(a *App)
-type AppOptionCreator func() []AppOption

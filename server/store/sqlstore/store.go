@@ -14,4 +14,5 @@ type SqlStore interface {
 
 	User() store.UserStore
 	Friend() store.FriendStore
+	OAuth() store.OAuthStore
 }

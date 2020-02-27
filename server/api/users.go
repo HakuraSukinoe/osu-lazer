@@ -8,7 +8,8 @@ import (
 func (api *API) InitUser() {
 	users := userHandlers{api}
 
-	api.BaseRoutes.Users.GET("/:user/", users.getUserByToken)
+	api.BaseRoutes.Users.GET("/:user", users.getUserByToken)
+	api.BaseRoutes.Users.GET("/:user/:mode", users.getUserByToken)
 }
 
 type userHandlers struct {

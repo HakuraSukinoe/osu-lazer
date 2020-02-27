@@ -8,6 +8,7 @@ import (
 	"github.com/deissh/osu-lazer/server/middlewares/customlogger"
 	"github.com/deissh/osu-lazer/server/middlewares/permission"
 	"github.com/deissh/osu-lazer/server/model"
+	"github.com/deissh/osu-lazer/server/services/cache"
 	"github.com/deissh/osu-lazer/server/store"
 	"github.com/deissh/osu-lazer/server/store/sqlstore"
 	"github.com/gookit/config/v2"
@@ -23,16 +24,15 @@ import (
 )
 
 type Server struct {
-	Store store.Store
-
 	HttpServer *echo.Echo
+
+	Store         store.Store
+	CacheProvider cache.Provider
 
 	goroutineCount      int32
 	goroutineExitSignal chan struct{}
-
-	newStore func() store.Store
-
-	configPath string
+	newStore            func() store.Store
+	configPath          string
 }
 
 func NewServer(options ...Option) (*Server, error) {
@@ -48,7 +48,7 @@ func NewServer(options ...Option) (*Server, error) {
 
 	config.WithOptions(config.ParseEnv, config.Readonly)
 	config.AddDriver(yaml.Driver)
-	err := config.LoadFiles(s.configPath)
+	err := config.LoadFiles(s.configPath, "config.yaml")
 	if err != nil {
 		panic(err)
 	}
@@ -116,10 +116,6 @@ func (s *Server) Shutdown() error {
 
 	s.WaitForGoroutines()
 
-	if s.Store != nil {
-		s.Store.Close()
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -127,7 +123,13 @@ func (s *Server) Shutdown() error {
 		log.Error().
 			Err(err).
 			Send()
-		return err
+	}
+
+	if s.Store != nil {
+		s.Store.Close()
+	}
+	if s.CacheProvider != nil {
+		s.CacheProvider.Close()
 	}
 
 	log.Info().Msg("HttpServer stopped")

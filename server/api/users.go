@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/labstack/echo/v4"
+	"strconv"
 )
 
 func (api *API) InitUser() {
@@ -17,7 +18,8 @@ type userHandlers struct {
 func (api *userHandlers) getUserByToken(c echo.Context) error {
 	mode := c.Param("mode")
 
-	api.User().GetAll()
+	userID, _ := strconv.ParseUint(c.Param("user"), 10, 32)
+	user, _ := api.Store.User().Get(uint(userID), mode)
 
-	return c.JSON(200, mode)
+	return c.JSON(200, user)
 }

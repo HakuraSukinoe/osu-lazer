@@ -4,12 +4,16 @@ import (
 	"context"
 	"fmt"
 	"github.com/deissh/osu-lazer/server/api"
-	"github.com/deissh/osu-lazer/server/mlog"
 	"github.com/deissh/osu-lazer/server/model"
 	"github.com/deissh/osu-lazer/server/store"
 	"github.com/deissh/osu-lazer/server/store/sqlstore"
+	"github.com/gookit/config/v2"
+	"github.com/gookit/config/v2/yaml"
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"os"
 	"sync/atomic"
 	"time"
 )
@@ -19,14 +23,12 @@ type Server struct {
 
 	HttpServer *echo.Echo
 
-	didFinishListen chan struct{}
-
 	goroutineCount      int32
 	goroutineExitSignal chan struct{}
 
 	newStore func() store.Store
 
-	Log *mlog.Logger
+	configPath string
 }
 
 func NewServer(options ...Option) (*Server, error) {
@@ -40,31 +42,38 @@ func NewServer(options ...Option) (*Server, error) {
 		}
 	}
 
-	if s.Log == nil {
-		s.Log = mlog.NewLogger(&mlog.LoggerConfiguration{EnableConsole: true})
+	config.WithOptions(config.ParseEnv, config.Readonly)
+	config.AddDriver(yaml.Driver)
+	err := config.LoadFiles(s.configPath)
+	if err != nil {
+		panic(err)
 	}
 
-	// Redirect default golang logger to this logger
-	mlog.RedirectStdLog(s.Log)
-
-	// Use this app logger as the global logger (eventually remove all instances of global logging)
-	mlog.InitGlobalLogger(s.Log)
+	if config.Bool("debug", false) {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		log.Logger = log.Output(
+			zerolog.ConsoleWriter{
+				Out:     os.Stderr,
+				NoColor: false,
+			},
+		).With().Caller().Logger()
+	}
 
 	logCurrentVersion := fmt.Sprintf("Current version is %v (%v/%v/%v/%v)", model.CurrentVersion, model.BuildNumber, model.BuildDate, model.BuildHash, model.BuildHashEnterprise)
-	mlog.Info(
-		logCurrentVersion,
-		mlog.String("current_version", model.CurrentVersion),
-		mlog.String("build_number", model.BuildNumber),
-		mlog.String("build_date", model.BuildDate),
-		mlog.String("build_hash", model.BuildHash),
-		mlog.String("build_hash_enterprise", model.BuildHashEnterprise),
-	)
+	log.Info().
+		Str("current_version", model.CurrentVersion).
+		Str("build_number", model.BuildNumber).
+		Str("build_date", model.BuildDate).
+		Str("build_hash", model.BuildHash).
+		Str("build_hash_enterprise", model.BuildHashEnterprise).
+		Msg(logCurrentVersion)
 
 	s.HttpServer = echo.New()
 	s.HttpServer.HideBanner = true
 	s.HttpServer.HidePort = true
 
-	s.Store = sqlstore.NewSqlSupplier()
+	settings := model.NewSqlSettings()
+	s.Store = sqlstore.NewSqlSupplier(settings)
 
 	return s, nil
 }
@@ -72,10 +81,15 @@ func NewServer(options ...Option) (*Server, error) {
 func (s *Server) Start() error {
 	api.Init(s.Store, s.HttpServer.Group(""))
 
+	addr := config.String("server.host") + ":" + config.String("server.port")
+
 	go func() {
-		err := s.HttpServer.Start("127.0.0.1:2100")
+		log.Info().Msg("Server started on " + addr)
+		err := s.HttpServer.Start(addr)
 		if err != nil {
-			mlog.Err(err)
+			log.Error().
+				Err(err).
+				Send()
 		}
 	}()
 
@@ -83,7 +97,7 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) Shutdown() error {
-	mlog.Info("Stopping HttpServer...")
+	log.Info().Msg("Stopping HttpServer...")
 
 	s.WaitForGoroutines()
 
@@ -95,11 +109,13 @@ func (s *Server) Shutdown() error {
 	defer cancel()
 
 	if err := s.HttpServer.Shutdown(ctx); err != nil {
-		mlog.Err(err)
+		log.Error().
+			Err(err).
+			Send()
 		return err
 	}
 
-	mlog.Info("HttpServer stopped")
+	log.Info().Msg("HttpServer stopped")
 	return nil
 }
 

@@ -2,7 +2,7 @@ package commands
 
 import (
 	"github.com/deissh/osu-lazer/server/app"
-	"github.com/deissh/osu-lazer/server/mlog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"net"
 	"os"
@@ -22,23 +22,30 @@ func init() {
 }
 
 func serverCmdF(command *cobra.Command, args []string) error {
-	interruptChan := make(chan os.Signal, 1)
+	configPath, _ := command.Flags().GetString("config")
 
-	server, err := app.NewServer()
+	server, err := app.NewServer(
+		app.SetConfig(configPath),
+	)
 	if err != nil {
-		mlog.Critical(err.Error())
+		log.Fatal().
+			Err(err).
+			Send()
 		return err
 	}
 	defer server.Shutdown()
 
 	serverErr := server.Start()
 	if serverErr != nil {
-		mlog.Critical(serverErr.Error())
+		log.Fatal().
+			Err(err).
+			Send()
 		return serverErr
 	}
 
 	notifyReady()
 
+	interruptChan := make(chan os.Signal, 1)
 	// wait for kill signal before attempting to gracefully shutdown
 	// the running service
 	signal.Notify(interruptChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -52,11 +59,13 @@ func notifyReady() {
 	// notify systemd that the server is ready.
 	systemdSocket := os.Getenv("NOTIFY_SOCKET")
 	if systemdSocket != "" {
-		mlog.Info("Sending systemd READY notification.")
+		log.Info().Msg("Sending systemd READY notification.")
 
 		err := sendSystemdReadyNotification(systemdSocket)
 		if err != nil {
-			mlog.Error(err.Error())
+			log.Fatal().
+				Err(err).
+				Send()
 		}
 	}
 }

@@ -13,7 +13,7 @@ type Routes struct {
 }
 
 type API struct {
-	store.Store
+	Store      store.Store
 	BaseRoutes *Routes
 }
 

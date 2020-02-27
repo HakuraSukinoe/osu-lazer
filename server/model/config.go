@@ -1,63 +1,38 @@
 package model
 
+import "github.com/gookit/config/v2"
+
 const (
-	SQL_SETTINGS_DEFAULT_DATA_SOURCE = "postgres://postgres:postgres@/osuserver?sslmode=disable"
-	DATABASE_NAME                    = "osuserver"
-	DATABASE_DRIVER_POSTGRES         = "postgres"
+	DEFAULT_DSN              = "postgres://postgres:postgres@/osuserver?sslmode=disable"
+	DATABASE_DRIVER_POSTGRES = "postgres"
+
+	MAX_IDLE_CONNS    = 20
+	MAX_OPEN_CONNS    = 300
+	CONN_MAX_LIFETIME = 3600000
+	QUERY_TIMEOUT     = 30
 )
 
 type SqlSettings struct {
-	DriverName                  *string `restricted:"true"`
-	DataSource                  *string `restricted:"true"`
-	DatabaseName                *string `restricted:"true"`
-	MaxIdleConns                *int    `restricted:"true"`
-	ConnMaxLifetimeMilliseconds *int    `restricted:"true"`
-	MaxOpenConns                *int    `restricted:"true"`
-	Trace                       *bool   `restricted:"true"`
-	AtRestEncryptKey            *string `restricted:"true"`
-	QueryTimeout                *int    `restricted:"true"`
+	DriverName                  string
+	DataSource                  string
+	MaxIdleConns                int
+	ConnMaxLifetimeMilliseconds int
+	MaxOpenConns                int
+	Trace                       bool
+	AtRestEncryptKey            string
+	QueryTimeout                int
 }
 
-func (s *SqlSettings) SetDefaults(isUpdate bool) {
-	if s.DriverName == nil {
-		s.DriverName = NewString(DATABASE_DRIVER_POSTGRES)
-	}
+func NewSqlSettings() *SqlSettings {
+	s := SqlSettings{}
 
-	if s.DataSource == nil {
-		s.DataSource = NewString(SQL_SETTINGS_DEFAULT_DATA_SOURCE)
-	}
+	s.DriverName = config.String("server.database.driver", DATABASE_DRIVER_POSTGRES)
+	s.DataSource = config.String("server.database.dsn", DEFAULT_DSN)
+	s.MaxIdleConns = config.Int("server.database.max_idle_conns", MAX_IDLE_CONNS)
+	s.MaxOpenConns = config.Int("server.database.max_open_conns", MAX_OPEN_CONNS)
+	s.ConnMaxLifetimeMilliseconds = config.Int("server.database.conn_max_lifetime", CONN_MAX_LIFETIME)
+	s.Trace = config.Bool("server.database.trace", false)
+	s.QueryTimeout = config.Int("server.database.query_timeout", QUERY_TIMEOUT)
 
-	if s.DatabaseName == nil {
-		s.DatabaseName = NewString(DATABASE_NAME)
-	}
-
-	if isUpdate {
-		// When updating an existing configuration, ensure an encryption key has been specified.
-		if s.AtRestEncryptKey == nil || len(*s.AtRestEncryptKey) == 0 {
-			s.AtRestEncryptKey = NewString(NewRandomString(32))
-		}
-	} else {
-		// When generating a blank configuration, leave this key empty to be generated on server start.
-		s.AtRestEncryptKey = NewString("")
-	}
-
-	if s.MaxIdleConns == nil {
-		s.MaxIdleConns = NewInt(20)
-	}
-
-	if s.MaxOpenConns == nil {
-		s.MaxOpenConns = NewInt(300)
-	}
-
-	if s.ConnMaxLifetimeMilliseconds == nil {
-		s.ConnMaxLifetimeMilliseconds = NewInt(3600000)
-	}
-
-	if s.Trace == nil {
-		s.Trace = NewBool(false)
-	}
-
-	if s.QueryTimeout == nil {
-		s.QueryTimeout = NewInt(30)
-	}
+	return &s
 }

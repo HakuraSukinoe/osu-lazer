@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/deissh/osu-lazer/server/mlog"
 	"github.com/deissh/osu-lazer/server/store"
 	"github.com/pkg/errors"
 )
@@ -33,9 +32,9 @@ func StoreOverride(override interface{}) Option {
 	}
 }
 
-func SetLogger(logger *mlog.Logger) Option {
+func SetConfig(path string) Option {
 	return func(s *Server) error {
-		s.Log = logger
+		s.configPath = path
 		return nil
 	}
 }

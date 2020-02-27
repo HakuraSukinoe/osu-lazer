@@ -2,12 +2,12 @@ package sqlstore
 
 import (
 	"context"
-	"github.com/deissh/osu-lazer/server/mlog"
 	"github.com/deissh/osu-lazer/server/model"
 	"github.com/deissh/osu-lazer/server/store"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+	"github.com/rs/zerolog/log"
 	"os"
 	"strings"
 	"time"
@@ -38,21 +38,11 @@ type SqlSupplier struct {
 	lockedToMaster bool
 }
 
-func NewSqlSupplier() *SqlSupplier {
+func NewSqlSupplier(settings *model.SqlSettings) *SqlSupplier {
 	supplier := &SqlSupplier{
 		rrCounter: 0,
 		srCounter: 0,
-		settings: &model.SqlSettings{
-			DriverName:                  nil,
-			DataSource:                  nil,
-			DatabaseName:                nil,
-			MaxIdleConns:                nil,
-			ConnMaxLifetimeMilliseconds: nil,
-			MaxOpenConns:                nil,
-			Trace:                       nil,
-			AtRestEncryptKey:            nil,
-			QueryTimeout:                nil,
-		},
+		settings:  settings,
 	}
 	supplier.initConnection()
 
@@ -62,9 +52,11 @@ func NewSqlSupplier() *SqlSupplier {
 }
 
 func (ss *SqlSupplier) initConnection() {
-	db, err := sqlx.Connect(*ss.settings.DriverName, *ss.settings.DataSource)
+	db, err := sqlx.Connect(ss.settings.DriverName, ss.settings.DataSource)
 	if err != nil {
-		mlog.Critical("Failed to open SQL connection to err.", mlog.Err(err))
+		log.Fatal().
+			Err(err).
+			Msg("Failed to open SQL connection to err.")
 		time.Sleep(time.Second)
 		os.Exit(EXIT_DB_OPEN)
 	}
@@ -78,25 +70,30 @@ func (ss *SqlSupplier) initConnection() {
 			break
 		} else {
 			if i == DB_PING_ATTEMPTS-1 {
-				mlog.Critical("Failed to ping DB, server will exit.", mlog.Err(err))
+				log.Fatal().
+					Err(err).
+					Msg("Failed to ping DB, server will exit.")
 				time.Sleep(time.Second)
 				os.Exit(EXIT_PING)
 			} else {
-				mlog.Error("Failed to ping DB", mlog.Err(err), mlog.Int("retrying in seconds", DB_PING_TIMEOUT_SECS))
+				log.Error().
+					Err(err).
+					Int("timeout", DB_PING_TIMEOUT_SECS).
+					Msg("Failed to ping DB")
 				time.Sleep(DB_PING_TIMEOUT_SECS * time.Second)
 			}
 		}
 	}
 
-	db.SetMaxIdleConns(*ss.settings.MaxIdleConns)
-	db.SetMaxOpenConns(*ss.settings.MaxOpenConns)
-	db.SetConnMaxLifetime(time.Duration(*ss.settings.ConnMaxLifetimeMilliseconds) * time.Millisecond)
+	db.SetMaxIdleConns(ss.settings.MaxIdleConns)
+	db.SetMaxOpenConns(ss.settings.MaxOpenConns)
+	db.SetConnMaxLifetime(time.Duration(ss.settings.ConnMaxLifetimeMilliseconds) * time.Millisecond)
 
 	ss.master = db
 }
 
 func (ss *SqlSupplier) DriverName() string {
-	return *ss.settings.DriverName
+	return ss.settings.DriverName
 }
 
 func (ss *SqlSupplier) GetCurrentSchemaVersion() string {

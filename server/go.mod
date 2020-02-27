@@ -10,10 +10,10 @@ require (
 	github.com/lib/pq v1.3.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/pkg/errors v0.8.1
-	github.com/sirupsen/logrus v1.4.2
+	github.com/rs/zerolog v1.18.0
+	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/spf13/cobra v0.0.6
 	github.com/stretchr/testify v1.4.0
-	go.uber.org/zap v1.10.0
 	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 )
